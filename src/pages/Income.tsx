@@ -3,8 +3,10 @@ import { Plus, Pencil, Trash2, Search, Loader2, TrendingUp, X, Filter } from 'lu
 import { supabase, formatCurrency, formatDate, type Income, type Student } from '@/lib/supabase';
 import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { useAuth } from '@/context/AuthContext';
 
 export default function IncomePage() {
+  const { user } = useAuth();
   const [rows, setRows] = useState<Income[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +83,8 @@ export default function IncomePage() {
     } else {
       await supabase.from('income').insert(payload);
     }
+    setForm({ date: new Date().toISOString().slice(0, 10), student_id: '', amount: '', note: '' });
+    setEditing(null);
     setSaving(false);
     setModalOpen(false);
     load();
@@ -104,12 +108,14 @@ export default function IncomePage() {
           <h2 className="text-2xl font-bold text-slate-800">Pemasukan Kas</h2>
           <p className="text-slate-500 text-sm mt-1">Catat pemasukan kas kelas</p>
         </div>
+        {user && (
         <button
           onClick={openAdd}
           className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-sm transition"
         >
           <Plus className="w-4 h-4" /> Tambah Pemasukan
         </button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -169,7 +175,7 @@ export default function IncomePage() {
                   <th className="px-5 py-3 font-semibold">Nama Siswa</th>
                   <th className="px-5 py-3 font-semibold text-right">Nominal</th>
                   <th className="px-5 py-3 font-semibold">Keterangan</th>
-                  <th className="px-5 py-3 font-semibold text-right">Aksi</th>
+                  {user && <th className="px-5 py-3 font-semibold text-right">Aksi</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -179,7 +185,7 @@ export default function IncomePage() {
                     <td className="px-5 py-3 font-medium text-slate-800">{r.student_name ?? '-'}</td>
                     <td className="px-5 py-3 text-right font-semibold text-emerald-600 whitespace-nowrap">{formatCurrency(Number(r.amount))}</td>
                     <td className="px-5 py-3 text-slate-500 max-w-[200px] truncate">{r.note || '-'}</td>
-                    <td className="px-5 py-3">
+                    {user && <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => openEdit(r)} className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition">
                           <Pencil className="w-4 h-4" />
@@ -188,7 +194,7 @@ export default function IncomePage() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                    </td>
+                    </td>}
                   </tr>
                 ))}
               </tbody>
@@ -204,7 +210,7 @@ export default function IncomePage() {
         )}
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Pemasukan' : 'Tambah Pemasukan'}>
+      {user && <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Pemasukan' : 'Tambah Pemasukan'}>
         <form onSubmit={save} className="space-y-4">
           {error && <p className="text-sm text-red-600 bg-red-50 p-2 rounded-lg">{error}</p>}
           <div>
@@ -235,9 +241,9 @@ export default function IncomePage() {
             </button>
           </div>
         </form>
-      </Modal>
+      </Modal>}
 
-      <ConfirmDialog open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={confirmDelete} title="Hapus Pemasukan" message="Yakin ingin menghapus data pemasukan ini?" loading={deleting} />
+      {user && <ConfirmDialog open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={confirmDelete} title="Hapus Pemasukan" message="Yakin ingin menghapus data pemasukan ini?" loading={deleting} />}
     </div>
   );
 }

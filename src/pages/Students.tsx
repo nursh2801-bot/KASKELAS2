@@ -3,8 +3,10 @@ import { Plus, Pencil, Trash2, Search, Loader2, Users, X } from 'lucide-react';
 import { supabase, type Student } from '@/lib/supabase';
 import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Students() {
+  const { user } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -58,6 +60,8 @@ export default function Students() {
     } else {
       await supabase.from('students').insert(payload);
     }
+    setForm({ nis: '', name: '', absen: '' });
+    setEditing(null);
     setSaving(false);
     setModalOpen(false);
     load();
@@ -79,12 +83,14 @@ export default function Students() {
           <h2 className="text-2xl font-bold text-slate-800">Data Siswa</h2>
           <p className="text-slate-500 text-sm mt-1">Kelola daftar siswa kelas</p>
         </div>
+        {user && (
         <button
           onClick={openAdd}
           className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-sm transition"
         >
           <Plus className="w-4 h-4" /> Tambah Siswa
         </button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -122,7 +128,7 @@ export default function Students() {
                   <th className="px-5 py-3 font-semibold">No. Absen</th>
                   <th className="px-5 py-3 font-semibold">NIS</th>
                   <th className="px-5 py-3 font-semibold">Nama</th>
-                  <th className="px-5 py-3 font-semibold text-right">Aksi</th>
+                  {user && <th className="px-5 py-3 font-semibold text-right">Aksi</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -131,7 +137,7 @@ export default function Students() {
                     <td className="px-5 py-3 text-slate-600">{s.absen}</td>
                     <td className="px-5 py-3 text-slate-600">{s.nis}</td>
                     <td className="px-5 py-3 font-medium text-slate-800">{s.name}</td>
-                    <td className="px-5 py-3">
+                    {user && <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => openEdit(s)} className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition">
                           <Pencil className="w-4 h-4" />
@@ -140,7 +146,7 @@ export default function Students() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                    </td>
+                    </td>}
                   </tr>
                 ))}
               </tbody>
@@ -149,7 +155,7 @@ export default function Students() {
         )}
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Siswa' : 'Tambah Siswa'}>
+      {user && <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Siswa' : 'Tambah Siswa'}>
         <form onSubmit={save} className="space-y-4">
           {error && <p className="text-sm text-red-600 bg-red-50 p-2 rounded-lg">{error}</p>}
           <div>
@@ -187,16 +193,16 @@ export default function Students() {
             </button>
           </div>
         </form>
-      </Modal>
+      </Modal>}
 
-      <ConfirmDialog
+      {user && <ConfirmDialog
         open={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={confirmDelete}
         title="Hapus Siswa"
         message="Yakin ingin menghapus data siswa ini?"
         loading={deleting}
-      />
+      />}
     </div>
   );
 }
