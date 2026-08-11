@@ -1,4 +1,4 @@
-import { Wallet, LayoutDashboard, Users, TrendingUp, TrendingDown, FileText, Settings, LogOut, X } from 'lucide-react';
+import { Wallet, LayoutDashboard, Users, TrendingUp, TrendingDown, FileText, Settings, LogOut, X, LogIn } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export type Page = 'dashboard' | 'students' | 'income' | 'expense' | 'report' | 'settings';
@@ -22,6 +22,7 @@ export default function Sidebar({
   onNavigate: (p: Page) => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
+  onLogin: () => void;
 }) {
   const { user, signOut } = useAuth();
 
@@ -52,7 +53,7 @@ export default function Sidebar({
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {menu.map((m) => {
+          {menu.filter((m) => user || m.id !== 'settings').map((m) => {
             const Icon = m.icon;
             const active = current === m.id;
             return (
@@ -73,16 +74,28 @@ export default function Sidebar({
         </nav>
 
         <div className="p-3 border-t border-white/10">
-          <div className="px-4 py-2 mb-2">
-            <p className="text-xs text-primary-200 truncate">{user?.email}</p>
-          </div>
-          <button
-            onClick={signOut}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-primary-100 hover:bg-red-500/20 transition"
-          >
-            <LogOut className="w-5 h-5 shrink-0" />
-            Keluar
-          </button>
+          {user ? (
+            <>
+              <div className="px-4 py-2 mb-2">
+                <p className="text-xs text-primary-200 truncate">{user.email}</p>
+              </div>
+              <button
+                onClick={signOut}
+                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-primary-100 hover:bg-red-500/20 transition"
+              >
+                <LogOut className="w-5 h-5 shrink-0" />
+                Keluar
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={onLogin}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-primary-100 hover:bg-white/10 transition"
+            >
+              <LogIn className="w-5 h-5 shrink-0" />
+              Login Admin
+            </button>
+          )}
         </div>
       </aside>
     </>

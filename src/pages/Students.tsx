@@ -3,8 +3,10 @@ import { Plus, Pencil, Trash2, Search, Loader2, Users, X } from 'lucide-react';
 import { supabase, type Student } from '@/lib/supabase';
 import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Students() {
+  const { user } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -82,12 +84,12 @@ export default function Students() {
           <h2 className="text-2xl font-bold text-slate-800">Data Siswa</h2>
           <p className="text-slate-500 text-sm mt-1">Kelola daftar siswa kelas</p>
         </div>
-        <button
+        {user && <button
           onClick={openAdd}
           className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-sm transition"
         >
           <Plus className="w-4 h-4" /> Tambah Siswa
-        </button>
+        </button>}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -136,12 +138,12 @@ export default function Students() {
                     <td className="px-5 py-3 font-medium text-slate-800">{s.name}</td>
                     <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => openEdit(s)} className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition">
+                        {user && <button onClick={() => openEdit(s)} className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition">
                           <Pencil className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => setDeleteId(s.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
+                        </button>}
+                        {user && <button onClick={() => setDeleteId(s.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
                           <Trash2 className="w-4 h-4" />
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>

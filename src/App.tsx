@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Menu } from 'lucide-react';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import Login from '@/components/Login';
@@ -24,6 +24,11 @@ function Shell() {
   const { user, loading } = useAuth();
   const [page, setPage] = useState<Page>('dashboard');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+
+  useEffect(() => {
+    if (user) setShowLogin(false);
+  }, [user]);
 
   if (loading) {
     return (
@@ -33,11 +38,9 @@ function Shell() {
     );
   }
 
-  if (!user) return <Login />;
-
   return (
     <div className="flex min-h-screen bg-slate-100">
-      <Sidebar current={page} onNavigate={setPage} mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
+      <Sidebar current={page} onNavigate={setPage} mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} onLogin={() => setShowLogin(true)} />
       <div className="flex-1 flex flex-col min-w-0">
         <header className="lg:hidden sticky top-0 z-20 bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3 no-print">
           <button onClick={() => setMobileOpen(true)} className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100">
@@ -51,9 +54,17 @@ function Shell() {
           {page === 'income' && <IncomePage />}
           {page === 'expense' && <ExpensePage />}
           {page === 'report' && <Report />}
-          {page === 'settings' && <Settings />}
+          {page === 'settings' && user && <Settings />}
         </main>
       </div>
+      {showLogin && !user && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/50 backdrop-blur-sm overflow-y-auto">
+          <div className="min-h-full relative">
+            <button onClick={() => setShowLogin(false)} className="fixed top-4 right-4 z-[110] bg-white rounded-full px-4 py-2 text-sm font-semibold text-slate-700 shadow-lg hover:bg-slate-100">Tutup</button>
+            <Login />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
