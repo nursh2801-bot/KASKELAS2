@@ -3,10 +3,8 @@ import { Plus, Pencil, Trash2, Search, Loader2, TrendingDown, X, Filter } from '
 import { supabase, formatCurrency, formatDate, type Expense } from '@/lib/supabase';
 import Modal from '@/components/ui/Modal';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import { useAuth } from '@/context/AuthContext';
 
 export default function ExpensePage() {
-  const { user } = useAuth();
   const [rows, setRows] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -66,16 +64,17 @@ export default function ExpensePage() {
     }
     setSaving(true);
     const payload = { date: form.date, purpose: form.purpose, amount: Number(form.amount), note: form.note };
-    if (editing) {
-      await supabase.from('expenses').update(payload).eq('id', editing.id);
-    } else {
-      await supabase.from('expenses').insert(payload);
+    const result = editing
+      ? await supabase.from('expenses').update(payload).eq('id', editing.id)
+      : await supabase.from('expenses').insert(payload);
+    setSaving(false);
+    if (result.error) {
+      setError(`Gagal menyimpan data: ${result.error.message}`);
+      return;
     }
     setForm({ date: new Date().toISOString().slice(0, 10), purpose: '', amount: '', note: '' });
-    setEditing(null);
-    setSaving(false);
-    setModalOpen(false);
-    load();
+    if (editing) setModalOpen(false);
+    await load();
   };
 
   const confirmDelete = async () => {
@@ -96,14 +95,12 @@ export default function ExpensePage() {
           <h2 className="text-2xl font-bold text-slate-800">Pengeluaran Kas</h2>
           <p className="text-slate-500 text-sm mt-1">Catat pengeluaran kas kelas</p>
         </div>
-        {user && (
         <button
           onClick={openAdd}
           className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2.5 rounded-xl shadow-sm transition"
         >
           <Plus className="w-4 h-4" /> Tambah Pengeluaran
         </button>
-        )}
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -163,7 +160,7 @@ export default function ExpensePage() {
                   <th className="px-5 py-3 font-semibold">Keperluan</th>
                   <th className="px-5 py-3 font-semibold text-right">Nominal</th>
                   <th className="px-5 py-3 font-semibold">Keterangan</th>
-                  {user && <th className="px-5 py-3 font-semibold text-right">Aksi</th>}
+                  <th className="px-5 py-3 font-semibold text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -173,7 +170,7 @@ export default function ExpensePage() {
                     <td className="px-5 py-3 font-medium text-slate-800">{r.purpose}</td>
                     <td className="px-5 py-3 text-right font-semibold text-red-600 whitespace-nowrap">{formatCurrency(Number(r.amount))}</td>
                     <td className="px-5 py-3 text-slate-500 max-w-[200px] truncate">{r.note || '-'}</td>
-                    {user && <td className="px-5 py-3">
+                    <td className="px-5 py-3">
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => openEdit(r)} className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition">
                           <Pencil className="w-4 h-4" />
@@ -182,7 +179,7 @@ export default function ExpensePage() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                    </td>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -198,7 +195,7 @@ export default function ExpensePage() {
         )}
       </div>
 
-      {user && <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Pengeluaran' : 'Tambah Pengeluaran'}>
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Pengeluaran' : 'Tambah Pengeluaran'}>
         <form onSubmit={save} className="space-y-4">
           {error && <p className="text-sm text-red-600 bg-red-50 p-2 rounded-lg">{error}</p>}
           <div>
@@ -224,9 +221,9 @@ export default function ExpensePage() {
             </button>
           </div>
         </form>
-      </Modal>}
+      </Modal>
 
-      {user && <ConfirmDialog open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={confirmDelete} title="Hapus Pengeluaran" message="Yakin ingin menghapus data pengeluaran ini?" loading={deleting} />}
+      <ConfirmDialog open={!!deleteId} onClose={() => setDeleteId(null)} onConfirm={confirmDelete} title="Hapus Pengeluaran" message="Yakin ingin menghapus data pengeluaran ini?" loading={deleting} />
     </div>
   );
 }
