@@ -17,6 +17,7 @@ export default function Sidebar({
   onNavigate,
   mobileOpen,
   onCloseMobile,
+  onLogin,
 }: {
   current: Page;
   onNavigate: (p: Page) => void;
