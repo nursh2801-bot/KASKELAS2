@@ -1,6 +1,12 @@
 ```tsx
 import { useEffect, useState } from 'react';
-import { Loader2, Pencil, Printer, Save, X } from 'lucide-react';
+import {
+  Loader2,
+  Pencil,
+  Printer,
+  Save,
+  X,
+} from 'lucide-react';
 import { supabase, type Student } from '@/lib/supabase';
 
 const DEFAULT_MONTHS = [
@@ -12,7 +18,8 @@ const DEFAULT_MONTHS = [
   { key: 'december', label: 'Desember' },
 ] as const;
 
-type MonthKey = (typeof DEFAULT_MONTHS)[number]['key'];
+type MonthKey =
+  (typeof DEFAULT_MONTHS)[number]['key'];
 
 type Month = {
   key: MonthKey;
@@ -26,61 +33,84 @@ type Payment = {
   paid: boolean;
 };
 
-const MONTH_STORAGE_KEY = 'kas-kelas-payment-months';
+const MONTH_STORAGE_KEY =
+  'kas-kelas-payment-months';
 
 export default function PaymentReport() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [months, setMonths] = useState<Month[]>(
-    [...DEFAULT_MONTHS]
-  );
+  const [students, setStudents] =
+    useState<Student[]>([]);
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [payments, setPayments] =
+    useState<Payment[]>([]);
 
-  const [editingMonths, setEditingMonths] = useState(false);
+  const [months, setMonths] =
+    useState<Month[]>([
+      ...DEFAULT_MONTHS,
+    ]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [saving, setSaving] =
+    useState<string | null>(null);
+
+  const [error, setError] =
+    useState('');
+
+  const [editingMonths, setEditingMonths] =
+    useState(false);
 
   const [editingValues, setEditingValues] =
     useState<string[]>(
-      DEFAULT_MONTHS.map((month) => month.label)
+      DEFAULT_MONTHS.map(
+        (month) => month.label
+      )
     );
 
   /*
-   * =========================
+   * ==============================
    * LOAD NAMA BULAN
-   * =========================
+   * ==============================
    */
+
   useEffect(() => {
     const savedMonths =
-      localStorage.getItem(MONTH_STORAGE_KEY);
+      localStorage.getItem(
+        MONTH_STORAGE_KEY
+      );
 
     if (!savedMonths) return;
 
     try {
-      const parsed = JSON.parse(savedMonths);
+      const parsed = JSON.parse(
+        savedMonths
+      );
 
       if (
         Array.isArray(parsed) &&
-        parsed.length === DEFAULT_MONTHS.length
+        parsed.length ===
+          DEFAULT_MONTHS.length
       ) {
         setMonths(parsed);
 
         setEditingValues(
-          parsed.map((month: Month) => month.label)
+          parsed.map(
+            (month: Month) =>
+              month.label
+          )
         );
       }
     } catch {
-      // Jika data localStorage rusak,
-      // gunakan bulan default.
+      // Gunakan bulan default
     }
   }, []);
 
   /*
-   * =========================
-   * LOAD DATA
-   * =========================
+   * ==============================
+   * LOAD SISWA + PEMBAYARAN
+   * ==============================
    */
+
   const loadData = async () => {
     setLoading(true);
     setError('');
@@ -107,10 +137,11 @@ export default function PaymentReport() {
     }
 
     /*
-     * Ambil SEMUA pembayaran yang boleh dibaca
-     * oleh user berdasarkan RLS Supabase.
+     * Tidak menggunakan filter user_id.
      *
-     * Tidak menggunakan filter user_id di sini.
+     * Jadi frontend akan mengambil
+     * semua pembayaran yang diizinkan
+     * oleh RLS Supabase.
      */
     const {
       data: paymentsData,
@@ -130,7 +161,10 @@ export default function PaymentReport() {
       return;
     }
 
-    setStudents(studentsData || []);
+    setStudents(
+      studentsData || []
+    );
+
     setPayments(
       (paymentsData || []) as Payment[]
     );
@@ -143,27 +177,30 @@ export default function PaymentReport() {
   }, []);
 
   /*
-   * =========================
-   * CEK STATUS PEMBAYARAN
-   * =========================
+   * ==============================
+   * CEK PEMBAYARAN
+   * ==============================
    */
+
   const getPaid = (
     studentId: string,
     month: MonthKey
   ) => {
     return payments.some(
       (payment) =>
-        payment.student_id === studentId &&
+        payment.student_id ===
+          studentId &&
         payment.month === month &&
         payment.paid === true
     );
   };
 
   /*
-   * =========================
-   * CENTANG / BATAL BAYAR
-   * =========================
+   * ==============================
+   * TOGGLE PEMBAYARAN
+   * ==============================
    */
+
   const togglePayment = async (
     studentId: string,
     month: MonthKey
@@ -175,17 +212,23 @@ export default function PaymentReport() {
     setError('');
 
     const currentPaid =
-      getPaid(studentId, month);
+      getPaid(
+        studentId,
+        month
+      );
 
-    const newPaid = !currentPaid;
+    const newPaid =
+      !currentPaid;
 
     /*
-     * Pastikan user sedang login.
+     * Cek login
      */
+
     const {
       data: userData,
       error: userError,
-    } = await supabase.auth.getUser();
+    } =
+      await supabase.auth.getUser();
 
     if (
       userError ||
@@ -200,29 +243,37 @@ export default function PaymentReport() {
     }
 
     /*
-     * Simpan pembayaran.
+     * Simpan pembayaran
      */
+
     const {
       data: savedPayment,
       error: saveError,
-    } = await supabase
-      .from('payments')
-      .upsert(
-        {
-          student_id: studentId,
-          month,
-          paid: newPaid,
-          user_id: userData.user.id,
-        },
-        {
-          onConflict:
-            'student_id,month',
-        }
-      )
-      .select(
-        'id, student_id, month, paid'
-      )
-      .single();
+    } =
+      await supabase
+        .from('payments')
+        .upsert(
+          {
+            student_id:
+              studentId,
+
+            month,
+
+            paid:
+              newPaid,
+
+            user_id:
+              userData.user.id,
+          },
+          {
+            onConflict:
+              'student_id,month',
+          }
+        )
+        .select(
+          'id, student_id, month, paid'
+        )
+        .single();
 
     if (saveError) {
       setError(
@@ -234,47 +285,54 @@ export default function PaymentReport() {
     }
 
     /*
-     * Update tampilan tanpa reload.
+     * Update tampilan langsung
      */
-    setPayments((current) => {
-      const existing =
-        current.find(
-          (payment) =>
-            payment.student_id ===
-              studentId &&
-            payment.month === month
-        );
 
-      if (existing) {
-        return current.map(
-          (payment) =>
-            payment.id === existing.id
-              ? {
-                  ...payment,
-                  paid: newPaid,
-                }
-              : payment
-        );
+    setPayments(
+      (current) => {
+        const existing =
+          current.find(
+            (payment) =>
+              payment.student_id ===
+                studentId &&
+              payment.month ===
+                month
+          );
+
+        if (existing) {
+          return current.map(
+            (payment) =>
+              payment.id ===
+                existing.id
+                ? {
+                    ...payment,
+                    paid:
+                      newPaid,
+                  }
+                : payment
+          );
+        }
+
+        if (savedPayment) {
+          return [
+            ...current,
+            savedPayment as Payment,
+          ];
+        }
+
+        return current;
       }
-
-      if (savedPayment) {
-        return [
-          ...current,
-          savedPayment as Payment,
-        ];
-      }
-
-      return current;
-    });
+    );
 
     setSaving(null);
   };
 
   /*
-   * =========================
+   * ==============================
    * JUMLAH BAYAR SISWA
-   * =========================
+   * ==============================
    */
+
   const getStudentPaidCount = (
     studentId: string
   ) => {
@@ -288,10 +346,11 @@ export default function PaymentReport() {
   };
 
   /*
-   * =========================
+   * ==============================
    * TOTAL
-   * =========================
+   * ==============================
    */
+
   const totalPaid =
     students.reduce(
       (total, student) =>
@@ -307,50 +366,59 @@ export default function PaymentReport() {
     months.length;
 
   const totalUnpaid =
-    totalPossible - totalPaid;
+    totalPossible -
+    totalPaid;
 
   /*
-   * =========================
-   * REKAP BULANAN
-   * =========================
+   * ==============================
+   * REKAP PER BULAN
+   * ==============================
    */
+
   const monthlyRecap =
-    months.map((month) => ({
-      ...month,
+    months.map(
+      (month) => ({
+        ...month,
 
-      paid: students.filter(
-        (student) =>
-          getPaid(
-            student.id,
-            month.key
-          )
-      ).length,
-    }));
+        paid: students.filter(
+          (student) =>
+            getPaid(
+              student.id,
+              month.key
+            )
+        ).length,
+      })
+    );
 
   /*
-   * =========================
+   * ==============================
    * EDIT BULAN
-   * =========================
+   * ==============================
    */
-  const startEditingMonths = () => {
-    setEditingValues(
-      months.map(
-        (month) => month.label
-      )
-    );
 
-    setEditingMonths(true);
-  };
+  const startEditingMonths =
+    () => {
+      setEditingValues(
+        months.map(
+          (month) =>
+            month.label
+        )
+      );
 
-  const cancelEditingMonths = () => {
-    setEditingValues(
-      months.map(
-        (month) => month.label
-      )
-    );
+      setEditingMonths(true);
+    };
 
-    setEditingMonths(false);
-  };
+  const cancelEditingMonths =
+    () => {
+      setEditingValues(
+        months.map(
+          (month) =>
+            month.label
+        )
+      );
+
+      setEditingMonths(false);
+    };
 
   const saveMonths = () => {
     const updatedMonths =
@@ -360,34 +428,41 @@ export default function PaymentReport() {
 
           label:
             editingValues[index]?.trim() ||
-            DEFAULT_MONTHS[index].label,
+            DEFAULT_MONTHS[index]
+              .label,
         })
       );
 
-    setMonths(updatedMonths);
+    setMonths(
+      updatedMonths
+    );
 
     localStorage.setItem(
       MONTH_STORAGE_KEY,
-      JSON.stringify(updatedMonths)
+      JSON.stringify(
+        updatedMonths
+      )
     );
 
     setEditingMonths(false);
   };
 
   /*
-   * =========================
+   * ==============================
    * PDF
-   * =========================
+   * ==============================
    */
+
   const downloadPDF = () => {
     window.print();
   };
 
   /*
-   * =========================
+   * ==============================
    * LOADING
-   * =========================
+   * ==============================
    */
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -397,18 +472,20 @@ export default function PaymentReport() {
   }
 
   /*
-   * =========================
+   * ==============================
    * TAMPILAN
-   * =========================
+   * ==============================
    */
+
   return (
     <>
       <style>
         {`
+
           /*
-           * =========================
-           * PRINT / PDF
-           * =========================
+           * ==========================
+           * PDF / PRINT
+           * ==========================
            */
 
           @media print {
@@ -418,8 +495,9 @@ export default function PaymentReport() {
             }
 
             /*
-             * Sembunyikan navigasi
+             * Sembunyikan menu aplikasi
              */
+
             aside,
             nav,
             header,
@@ -430,6 +508,7 @@ export default function PaymentReport() {
             /*
              * Area laporan
              */
+
             .print-area {
               display: block !important;
               width: 100% !important;
@@ -438,13 +517,12 @@ export default function PaymentReport() {
             }
 
             /*
-             * Tombol pembayaran saat dicetak
-             *
-             * Tidak menggunakan SVG.
-             * Ceklis berupa karakter teks ✓.
+             * KOTAK PEMBAYARAN
              */
+
             .payment-check {
               display: inline-flex !important;
+
               align-items: center !important;
               justify-content: center !important;
 
@@ -457,7 +535,9 @@ export default function PaymentReport() {
               border-radius: 5px !important;
 
               font-family: Arial, sans-serif !important;
+
               font-size: 18px !important;
+
               font-weight: 700 !important;
 
               line-height: 1 !important;
@@ -465,30 +545,43 @@ export default function PaymentReport() {
 
             /*
              * SUDAH BAYAR
+             *
+             * HIJAU + CEKLIS PUTIH
              */
+
             .payment-check.paid {
               background: #10b981 !important;
+
               border-color: #10b981 !important;
+
               color: white !important;
 
               print-color-adjust: exact !important;
+
               -webkit-print-color-adjust: exact !important;
             }
 
             /*
              * BELUM BAYAR
              */
+
             .payment-check.unpaid {
               background: white !important;
+
+              border-color: #cbd5e1 !important;
+
               color: transparent !important;
             }
 
             /*
-             * Tabel
+             * TABEL
              */
+
             table {
               width: 100% !important;
+
               font-size: 10px !important;
+
               border-collapse: collapse !important;
             }
 
@@ -498,10 +591,12 @@ export default function PaymentReport() {
             }
 
             /*
-             * Landscape
+             * PDF LANDSCAPE
              */
+
             @page {
               size: landscape;
+
               margin: 10mm;
             }
           }
@@ -510,12 +605,14 @@ export default function PaymentReport() {
 
       <div className="print-area space-y-6">
 
-        {/* =========================
+        {/* ==========================
             JUDUL
-        ========================= */}
+        ========================== */}
+
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
           <div>
+
             <h1 className="text-2xl font-bold text-slate-800">
               Laporan Pembayaran
             </h1>
@@ -524,9 +621,13 @@ export default function PaymentReport() {
               Rekap pembayaran iuran siswa
               Semester 1
             </p>
+
           </div>
 
-          {/* TOMBOL */}
+          {/* ========================
+              TOMBOL
+          ======================== */}
+
           <div className="no-print flex flex-wrap gap-2">
 
             {!editingMonths ? (
@@ -537,9 +638,11 @@ export default function PaymentReport() {
                 }
                 className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
+
                 <Pencil className="h-4 w-4" />
 
                 Edit Bulan
+
               </button>
             ) : (
               <>
@@ -548,9 +651,11 @@ export default function PaymentReport() {
                   onClick={saveMonths}
                   className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
                 >
+
                   <Save className="h-4 w-4" />
 
                   Simpan
+
                 </button>
 
                 <button
@@ -560,9 +665,11 @@ export default function PaymentReport() {
                   }
                   className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
+
                   <X className="h-4 w-4" />
 
                   Batal
+
                 </button>
               </>
             )}
@@ -572,16 +679,21 @@ export default function PaymentReport() {
               onClick={downloadPDF}
               className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900"
             >
+
               <Printer className="h-4 w-4" />
 
               Download PDF
+
             </button>
+
           </div>
+
         </div>
 
-        {/* =========================
+        {/* ==========================
             EDIT BULAN
-        ========================= */}
+        ========================== */}
+
         {editingMonths && (
           <div className="no-print rounded-xl border border-blue-200 bg-blue-50 p-4">
 
@@ -603,44 +715,53 @@ export default function PaymentReport() {
                     <input
                       type="text"
                       value={value}
-                      onChange={(event) => {
-                        const updated = [
-                          ...editingValues,
-                        ];
+                      onChange={
+                        (event) => {
+                          const updated =
+                            [
+                              ...editingValues,
+                            ];
 
-                        updated[index] =
-                          event.target.value;
+                          updated[
+                            index
+                          ] =
+                            event.target.value;
 
-                        setEditingValues(
-                          updated
-                        );
-                      }}
+                          setEditingValues(
+                            updated
+                          );
+                        }
+                      }
                       className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
                     />
+
                   </div>
                 )
               )}
 
             </div>
+
           </div>
         )}
 
-        {/* =========================
+        {/* ==========================
             ERROR
-        ========================= */}
+        ========================== */}
+
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        {/* =========================
+        {/* ==========================
             RINGKASAN
-        ========================= */}
+        ========================== */}
+
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
 
-          {/* SISWA */}
           <div className="rounded-xl border border-slate-200 bg-white p-4">
+
             <p className="text-sm text-slate-500">
               Jumlah Siswa
             </p>
@@ -648,10 +769,11 @@ export default function PaymentReport() {
             <p className="mt-1 text-2xl font-bold text-slate-800">
               {students.length}
             </p>
+
           </div>
 
-          {/* SUDAH BAYAR */}
           <div className="rounded-xl border border-slate-200 bg-white p-4">
+
             <p className="text-sm text-slate-500">
               Sudah Bayar
             </p>
@@ -659,10 +781,11 @@ export default function PaymentReport() {
             <p className="mt-1 text-2xl font-bold text-emerald-600">
               {totalPaid}
             </p>
+
           </div>
 
-          {/* BELUM BAYAR */}
           <div className="rounded-xl border border-slate-200 bg-white p-4">
+
             <p className="text-sm text-slate-500">
               Belum Bayar
             </p>
@@ -670,10 +793,11 @@ export default function PaymentReport() {
             <p className="mt-1 text-2xl font-bold text-red-600">
               {totalUnpaid}
             </p>
+
           </div>
 
-          {/* TOTAL */}
           <div className="rounded-xl border border-slate-200 bg-white p-4">
+
             <p className="text-sm text-slate-500">
               Total Tagihan
             </p>
@@ -685,19 +809,23 @@ export default function PaymentReport() {
             <p className="text-xs text-slate-400">
               bulan pembayaran
             </p>
+
           </div>
 
         </div>
 
-        {/* =========================
-            TABEL
-        ========================= */}
+        {/* ==========================
+            TABEL PEMBAYARAN
+        ========================== */}
+
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
 
           <div className="border-b border-slate-200 px-4 py-4">
+
             <h2 className="font-semibold text-slate-800">
               Pembayaran Semester 1
             </h2>
+
           </div>
 
           <div className="overflow-x-auto">
@@ -742,7 +870,10 @@ export default function PaymentReport() {
               <tbody>
 
                 {students.map(
-                  (student, index) => {
+                  (
+                    student,
+                    index
+                  ) => {
 
                     const paidCount =
                       getStudentPaidCount(
@@ -755,21 +886,26 @@ export default function PaymentReport() {
 
                     return (
                       <tr
-                        key={student.id}
+                        key={
+                          student.id
+                        }
                         className="border-b border-slate-100 hover:bg-slate-50"
                       >
 
                         {/* NO */}
+
                         <td className="px-3 py-3">
                           {index + 1}
                         </td>
 
                         {/* NAMA */}
+
                         <td className="px-3 py-3 font-medium text-slate-700">
                           {student.name}
                         </td>
 
                         {/* BULAN */}
+
                         {months.map(
                           (month) => {
 
@@ -784,7 +920,9 @@ export default function PaymentReport() {
 
                             return (
                               <td
-                                key={month.key}
+                                key={
+                                  month.key
+                                }
                                 className="px-3 py-3 text-center"
                               >
 
@@ -800,25 +938,28 @@ export default function PaymentReport() {
                                     saving ===
                                     savingKey
                                   }
-                                  className={`payment-check ${
-                                    paid
-                                      ? 'paid'
-                                      : 'unpaid'
-                                  } mx-auto flex h-8 w-8 items-center justify-center rounded-lg border`}
+                                  className={`
+                                    payment-check
+                                    ${
+                                      paid
+                                        ? 'paid'
+                                        : 'unpaid'
+                                    }
+                                    mx-auto
+                                    flex
+                                    h-8
+                                    w-8
+                                    items-center
+                                    justify-center
+                                    rounded-lg
+                                    border
+                                  `}
                                 >
 
                                   {saving ===
                                   savingKey ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : paid ? (
-                                    /*
-                                     * PENTING:
-                                     * ✓ adalah TEKS,
-                                     * bukan SVG.
-                                     *
-                                     * Jadi saat PDF:
-                                     * ceklis tetap muncul.
-                                     */
                                     <span>
                                       ✓
                                     </span>
@@ -836,11 +977,13 @@ export default function PaymentReport() {
                         )}
 
                         {/* TERBAYAR */}
+
                         <td className="px-3 py-3 text-center font-semibold text-emerald-600">
                           {paidCount}
                         </td>
 
                         {/* TUNGGAKAN */}
+
                         <td className="px-3 py-3 text-center font-semibold text-red-600">
                           {unpaidCount}
                         </td>
@@ -856,7 +999,8 @@ export default function PaymentReport() {
 
           </div>
 
-          {students.length === 0 && (
+          {students.length ===
+            0 && (
             <div className="p-8 text-center text-slate-500">
               Belum ada data siswa.
             </div>
@@ -864,9 +1008,10 @@ export default function PaymentReport() {
 
         </div>
 
-        {/* =========================
+        {/* ==========================
             REKAP BULANAN
-        ========================= */}
+        ========================== */}
+
         <div className="rounded-xl border border-slate-200 bg-white p-4">
 
           <h2 className="mb-4 font-semibold text-slate-800">
@@ -878,7 +1023,9 @@ export default function PaymentReport() {
             {monthlyRecap.map(
               (month) => (
                 <div
-                  key={month.key}
+                  key={
+                    month.key
+                  }
                   className="rounded-lg bg-slate-50 p-3 text-center"
                 >
 
@@ -891,7 +1038,8 @@ export default function PaymentReport() {
                   </p>
 
                   <p className="text-xs text-slate-500">
-                    dari {students.length}{' '}
+                    dari{' '}
+                    {students.length}{' '}
                     siswa
                   </p>
 
@@ -900,11 +1048,13 @@ export default function PaymentReport() {
             )}
 
           </div>
+
         </div>
 
-        {/* =========================
+        {/* ==========================
             SISWA MENUNGGAK
-        ========================= */}
+        ========================== */}
+
         <div className="rounded-xl border border-slate-200 bg-white p-4">
 
           <h2 className="mb-4 font-semibold text-slate-800">
@@ -918,47 +1068,57 @@ export default function PaymentReport() {
                 (student) =>
                   getStudentPaidCount(
                     student.id
-                  ) < months.length
+                  ) <
+                  months.length
               )
-              .map((student) => {
+              .map(
+                (student) => {
 
-                const unpaid =
-                  months.length -
-                  getStudentPaidCount(
-                    student.id
+                  const unpaid =
+                    months.length -
+                    getStudentPaidCount(
+                      student.id
+                    );
+
+                  return (
+                    <div
+                      key={
+                        student.id
+                      }
+                      className="flex items-center justify-between border-b border-slate-100 py-2"
+                    >
+
+                      <span className="text-slate-700">
+                        {student.name}
+                      </span>
+
+                      <span className="text-sm font-semibold text-red-600">
+                        {unpaid}{' '}
+                        bulan
+                      </span>
+
+                    </div>
                   );
+                }
+              )}
 
-                return (
-                  <div
-                    key={student.id}
-                    className="flex items-center justify-between border-b border-slate-100 py-2"
-                  >
-
-                    <span className="text-slate-700">
-                      {student.name}
-                    </span>
-
-                    <span className="text-sm font-semibold text-red-600">
-                      {unpaid} bulan
-                    </span>
-
-                  </div>
-                );
-              })}
-
-            {students.length > 0 &&
+            {students.length >
+              0 &&
               students.every(
                 (student) =>
                   getStudentPaidCount(
                     student.id
-                  ) === months.length
+                  ) ===
+                  months.length
               ) && (
                 <p className="text-sm text-emerald-600">
-                  Semua siswa sudah lunas.
+                  Semua siswa sudah
+                  lunas.
                 </p>
               )}
 
           </div>
+
         </div>
 
       </div>
