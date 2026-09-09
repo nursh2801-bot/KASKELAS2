@@ -8,6 +8,7 @@ const menu: { id: Page; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'income', label: 'Pemasukan Kas', icon: TrendingUp },
   { id: 'expense', label: 'Pengeluaran Kas', icon: TrendingDown },
   { id: 'report', label: 'Laporan', icon: FileText },
+{ id: 'paymentReport', label: 'Laporan Pembayaran', icon: FileText },
   { id: 'settings', label: 'Pengaturan', icon: Settings },
 ];
 
