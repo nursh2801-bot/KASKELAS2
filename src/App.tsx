@@ -57,10 +57,7 @@ function Shell() {
           >
             <Menu className="w-5 h-5" />
           </button>
-
-          <span className="font-bold text-slate-800">
-            {titles[page]}
-          </span>
+          <span className="font-bold text-slate-800">{titles[page]}</span>
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
@@ -83,7 +80,6 @@ function Shell() {
             >
               Tutup
             </button>
-
             <Login />
           </div>
         </div>
