@@ -18,6 +18,7 @@ const titles: Record<Page, string> = {
   income: 'Pemasukan Kas',
   expense: 'Pengeluaran Kas',
   report: 'Laporan',
+  paymentReport: 'Laporan Pembayaran',
   settings: 'Pengaturan',
 };
 
