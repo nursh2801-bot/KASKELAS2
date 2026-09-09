@@ -55,6 +55,7 @@ function Shell() {
           {page === 'income' && <IncomePage />}
           {page === 'expense' && <ExpensePage />}
           {page === 'report' && <Report />}
+          {page === 'paymentReport' && <PaymentReport />}
           {page === 'settings' && user && <Settings />}
         </main>
       </div>
