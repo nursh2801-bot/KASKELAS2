@@ -9,6 +9,7 @@ import IncomePage from '@/pages/Income';
 import ExpensePage from '@/pages/Expense';
 import Report from '@/pages/Report';
 import Settings from '@/pages/Settings';
+import PaymentReport from '@/components/PaymentReport';
 import { Loader2 } from 'lucide-react';
 
 const titles: Record<Page, string> = {
