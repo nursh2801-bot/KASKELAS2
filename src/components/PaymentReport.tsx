@@ -69,7 +69,7 @@ export default function PaymentReport() {
           );
         }
       } catch {
-        // Gunakan nama bulan bawaan jika data rusak
+        // Gunakan nama bulan bawaan
       }
     }
   }, []);
@@ -287,7 +287,6 @@ export default function PaymentReport() {
             aside,
             nav,
             header,
-            button,
             .no-print {
               display: none !important;
             }
@@ -304,6 +303,31 @@ export default function PaymentReport() {
             @page {
               size: landscape;
               margin: 10mm;
+            }
+
+            .payment-check {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              width: 28px !important;
+              height: 28px !important;
+              margin: auto !important;
+              border: 1px solid #94a3b8 !important;
+              border-radius: 6px !important;
+              background: white !important;
+              color: transparent !important;
+            }
+
+            .payment-check.paid {
+              background: #10b981 !important;
+              border-color: #10b981 !important;
+              color: white !important;
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+
+            .payment-check svg {
+              display: block !important;
             }
           }
         `}
@@ -323,7 +347,7 @@ export default function PaymentReport() {
             </p>
           </div>
 
-          <div className="flex gap-2 no-print">
+          <div className="flex flex-wrap gap-2 no-print">
             {!editingMonths ? (
               <button
                 type="button"
@@ -366,9 +390,10 @@ export default function PaymentReport() {
           </div>
         </div>
 
+        {/* EDIT BULAN */}
         {editingMonths && (
           <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 no-print">
-            <p className="text-sm font-medium text-blue-800 mb-3">
+            <p className="mb-3 text-sm font-medium text-blue-800">
               Edit nama bulan untuk periode pembayaran.
             </p>
 
@@ -402,6 +427,7 @@ export default function PaymentReport() {
           </div>
         )}
 
+        {/* ERROR */}
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
@@ -546,9 +572,9 @@ export default function PaymentReport() {
                                     saving ===
                                     savingKey
                                   }
-                                  className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+                                  className={`payment-check mx-auto flex h-8 w-8 items-center justify-center rounded-lg border transition ${
                                     paid
-                                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                                      ? 'paid border-emerald-500 bg-emerald-500 text-white'
                                       : 'border-slate-300 bg-white text-transparent hover:border-emerald-400'
                                   }`}
                                 >
@@ -586,7 +612,7 @@ export default function PaymentReport() {
           )}
         </div>
 
-        {/* MONTHLY RECAP */}
+        {/* REKAP BULANAN */}
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <h2 className="mb-4 font-semibold text-slate-800">
             Rekap Pembayaran Per Bulan
@@ -614,7 +640,7 @@ export default function PaymentReport() {
           </div>
         </div>
 
-        {/* ARREARS */}
+        {/* TUNGGAKAN */}
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <h2 className="mb-4 font-semibold text-slate-800">
             Siswa yang Masih Menunggak
