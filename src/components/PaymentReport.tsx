@@ -1,17 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Check, Loader2 } from 'lucide-react';
+import {
+  Check,
+  Loader2,
+  Pencil,
+  Printer,
+  Save,
+  X,
+} from 'lucide-react';
 import { supabase, type Student } from '@/lib/supabase';
 
-const MONTHS = [
-  { key: 'july', label: 'Jul' },
-  { key: 'august', label: 'Agu' },
-  { key: 'september', label: 'Sep' },
-  { key: 'october', label: 'Okt' },
-  { key: 'november', label: 'Nov' },
-  { key: 'december', label: 'Des' },
+const DEFAULT_MONTHS = [
+  { key: 'july', label: 'Juli' },
+  { key: 'august', label: 'Agustus' },
+  { key: 'september', label: 'September' },
+  { key: 'october', label: 'Oktober' },
+  { key: 'november', label: 'November' },
+  { key: 'december', label: 'Desember' },
 ] as const;
 
-type MonthKey = (typeof MONTHS)[number]['key'];
+type MonthKey = (typeof DEFAULT_MONTHS)[number]['key'];
+
+type Month = {
+  key: MonthKey;
+  label: string;
+};
 
 type Payment = {
   id: string;
@@ -20,21 +32,57 @@ type Payment = {
   paid: boolean;
 };
 
+const MONTH_STORAGE_KEY = 'kas-kelas-payment-months';
+
 export default function PaymentReport() {
   const [students, setStudents] = useState<Student[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [months, setMonths] = useState<Month[]>([
+    ...DEFAULT_MONTHS,
+  ]);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState('');
+
+  const [editingMonths, setEditingMonths] = useState(false);
+  const [editingValues, setEditingValues] = useState<string[]>(
+    DEFAULT_MONTHS.map((month) => month.label)
+  );
+
+  useEffect(() => {
+    const savedMonths = localStorage.getItem(
+      MONTH_STORAGE_KEY
+    );
+
+    if (savedMonths) {
+      try {
+        const parsed = JSON.parse(savedMonths);
+
+        if (
+          Array.isArray(parsed) &&
+          parsed.length === DEFAULT_MONTHS.length
+        ) {
+          setMonths(parsed);
+          setEditingValues(
+            parsed.map((month: Month) => month.label)
+          );
+        }
+      } catch {
+        // Gunakan nama bulan bawaan jika data rusak
+      }
+    }
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
     setError('');
 
-    const { data: studentsData, error: studentsError } = await supabase
-      .from('students')
-      .select('id, nis, name, absen, created_at')
-      .order('absen', { ascending: true });
+    const { data: studentsData, error: studentsError } =
+      await supabase
+        .from('students')
+        .select('id, nis, name, absen, created_at')
+        .order('absen', { ascending: true });
 
     if (studentsError) {
       setError(studentsError.message);
@@ -42,9 +90,10 @@ export default function PaymentReport() {
       return;
     }
 
-    const { data: paymentsData, error: paymentsError } = await supabase
-      .from('payments')
-      .select('id, student_id, month, paid');
+    const { data: paymentsData, error: paymentsError } =
+      await supabase
+        .from('payments')
+        .select('id, student_id, month, paid');
 
     if (paymentsError) {
       setError(paymentsError.message);
@@ -61,12 +110,15 @@ export default function PaymentReport() {
     loadData();
   }, []);
 
-  const getPaid = (studentId: string, month: MonthKey) => {
+  const getPaid = (
+    studentId: string,
+    month: MonthKey
+  ) => {
     return payments.some(
-      (p) =>
-        p.student_id === studentId &&
-        p.month === month &&
-        p.paid
+      (payment) =>
+        payment.student_id === studentId &&
+        payment.month === month &&
+        payment.paid
     );
   };
 
@@ -75,13 +127,15 @@ export default function PaymentReport() {
     month: MonthKey
   ) => {
     const key = `${studentId}-${month}`;
+
     setSaving(key);
     setError('');
 
     const currentPaid = getPaid(studentId, month);
     const newPaid = !currentPaid;
 
-    const { data: userData } = await supabase.auth.getUser();
+    const { data: userData } =
+      await supabase.auth.getUser();
 
     if (!userData.user) {
       setError('Silakan login terlebih dahulu.');
@@ -89,19 +143,22 @@ export default function PaymentReport() {
       return;
     }
 
-    const { error: saveError } = await supabase
-      .from('payments')
-      .upsert(
-        {
-          student_id: studentId,
-          month,
-          paid: newPaid,
-          user_id: userData.user.id,
-        },
-        {
-          onConflict: 'student_id,month',
-        }
-      );
+    const { data: savedPayment, error: saveError } =
+      await supabase
+        .from('payments')
+        .upsert(
+          {
+            student_id: studentId,
+            month,
+            paid: newPaid,
+            user_id: userData.user.id,
+          },
+          {
+            onConflict: 'student_id,month',
+          }
+        )
+        .select('id, student_id, month, paid')
+        .single();
 
     if (saveError) {
       setError(saveError.message);
@@ -111,22 +168,25 @@ export default function PaymentReport() {
 
     setPayments((current) => {
       const existing = current.find(
-        (p) =>
-          p.student_id === studentId &&
-          p.month === month
+        (payment) =>
+          payment.student_id === studentId &&
+          payment.month === month
       );
 
       if (existing) {
-        return current.map((p) =>
-          p.id === existing.id
-            ? { ...p, paid: newPaid }
-            : p
+        return current.map((payment) =>
+          payment.id === existing.id
+            ? {
+                ...payment,
+                paid: newPaid,
+              }
+            : payment
         );
       }
 
       return [
         ...current,
-        {
+        savedPayment || {
           id: `${studentId}-${month}`,
           student_id: studentId,
           month,
@@ -138,10 +198,13 @@ export default function PaymentReport() {
     setSaving(null);
   };
 
-  const getStudentPaidCount = (studentId: string) =>
-    MONTHS.filter((month) =>
+  const getStudentPaidCount = (
+    studentId: string
+  ) => {
+    return months.filter((month) =>
       getPaid(studentId, month.key)
     ).length;
+  };
 
   const totalPaid = students.reduce(
     (total, student) =>
@@ -149,15 +212,60 @@ export default function PaymentReport() {
     0
   );
 
-  const totalPossible = students.length * MONTHS.length;
-  const totalUnpaid = totalPossible - totalPaid;
+  const totalPossible =
+    students.length * months.length;
 
-  const monthlyRecap = MONTHS.map((month) => ({
+  const totalUnpaid =
+    totalPossible - totalPaid;
+
+  const monthlyRecap = months.map((month) => ({
     ...month,
     paid: students.filter((student) =>
       getPaid(student.id, month.key)
     ).length,
   }));
+
+  const startEditingMonths = () => {
+    setEditingValues(
+      months.map((month) => month.label)
+    );
+    setEditingMonths(true);
+  };
+
+  const cancelEditingMonths = () => {
+    setEditingValues(
+      months.map((month) => month.label)
+    );
+    setEditingMonths(false);
+  };
+
+  const saveMonths = () => {
+    const cleaned = editingValues.map(
+      (value, index) =>
+        value.trim() ||
+        DEFAULT_MONTHS[index].label
+    );
+
+    const updatedMonths = months.map(
+      (month, index) => ({
+        ...month,
+        label: cleaned[index],
+      })
+    );
+
+    setMonths(updatedMonths);
+
+    localStorage.setItem(
+      MONTH_STORAGE_KEY,
+      JSON.stringify(updatedMonths)
+    );
+
+    setEditingMonths(false);
+  };
+
+  const downloadPDF = () => {
+    window.print();
+  };
 
   if (loading) {
     return (
@@ -168,250 +276,395 @@ export default function PaymentReport() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">
-          Laporan Pembayaran
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Rekap pembayaran iuran siswa Semester 1
-          (Juli–Desember)
-        </p>
-      </div>
+    <>
+      <style>
+        {`
+          @media print {
+            body {
+              background: white !important;
+            }
 
-      {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
+            aside,
+            nav,
+            header,
+            button,
+            .no-print {
+              display: none !important;
+            }
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-sm text-slate-500">
-            Jumlah Siswa
-          </p>
-          <p className="text-2xl font-bold text-slate-800 mt-1">
-            {students.length}
-          </p>
-        </div>
+            .print-area {
+              display: block !important;
+              width: 100% !important;
+            }
 
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-sm text-slate-500">
-            Sudah Bayar
-          </p>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">
-            {totalPaid}
-          </p>
-        </div>
+            table {
+              font-size: 10px !important;
+            }
 
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-sm text-slate-500">
-            Belum Bayar
-          </p>
-          <p className="text-2xl font-bold text-red-600 mt-1">
-            {totalUnpaid}
-          </p>
-        </div>
+            @page {
+              size: landscape;
+              margin: 10mm;
+            }
+          }
+        `}
+      </style>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <p className="text-sm text-slate-500">
-            Total Tagihan
-          </p>
-          <p className="text-2xl font-bold text-slate-800 mt-1">
-            {totalPossible}
-          </p>
-          <p className="text-xs text-slate-400">
-            bulan pembayaran
-          </p>
-        </div>
-      </div>
+      <div className="space-y-6 print-area">
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-4 border-b border-slate-200">
-          <h2 className="font-semibold text-slate-800">
-            Pembayaran Semester 1
-          </h2>
-        </div>
+        {/* HEADER */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-800">
+              Laporan Pembayaran
+            </h1>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-3 py-3 text-left">
-                  No
-                </th>
-                <th className="px-3 py-3 text-left min-w-[180px]">
-                  Nama Siswa
-                </th>
+            <p className="text-sm text-slate-500 mt-1">
+              Rekap pembayaran iuran siswa Semester 1
+            </p>
+          </div>
 
-                {MONTHS.map((month) => (
-                  <th
-                    key={month.key}
-                    className="px-3 py-3 text-center"
-                  >
-                    {month.label}
-                  </th>
-                ))}
+          <div className="flex gap-2 no-print">
+            {!editingMonths ? (
+              <button
+                type="button"
+                onClick={startEditingMonths}
+                className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <Pencil className="w-4 h-4" />
+                Edit Bulan
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={saveMonths}
+                  className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                >
+                  <Save className="w-4 h-4" />
+                  Simpan
+                </button>
 
-                <th className="px-3 py-3 text-center min-w-[90px]">
-                  Terbayar
-                </th>
-                <th className="px-3 py-3 text-center min-w-[90px]">
-                  Tunggakan
-                </th>
-              </tr>
-            </thead>
+                <button
+                  type="button"
+                  onClick={cancelEditingMonths}
+                  className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+                >
+                  <X className="w-4 h-4" />
+                  Batal
+                </button>
+              </>
+            )}
 
-            <tbody>
-              {students.map((student, index) => {
-                const paidCount =
-                  getStudentPaidCount(student.id);
-                const unpaidCount =
-                  MONTHS.length - paidCount;
-
-                return (
-                  <tr
-                    key={student.id}
-                    className="border-b border-slate-100 hover:bg-slate-50"
-                  >
-                    <td className="px-3 py-3">
-                      {index + 1}
-                    </td>
-
-                    <td className="px-3 py-3 font-medium text-slate-700">
-                      {student.name}
-                    </td>
-
-                    {MONTHS.map((month) => {
-                      const paid = getPaid(
-                        student.id,
-                        month.key
-                      );
-
-                      const savingKey = `${student.id}-${month.key}`;
-
-                      return (
-                        <td
-                          key={month.key}
-                          className="px-3 py-3 text-center"
-                        >
-                          <button
-                            type="button"
-                            onClick={() =>
-                              togglePayment(
-                                student.id,
-                                month.key
-                              )
-                            }
-                            disabled={
-                              saving === savingKey
-                            }
-                            className={`w-8 h-8 rounded-lg border flex items-center justify-center mx-auto transition ${
-                              paid
-                                ? 'bg-emerald-500 border-emerald-500 text-white'
-                                : 'bg-white border-slate-300 text-transparent hover:border-emerald-400'
-                            }`}
-                          >
-                            {saving === savingKey ? (
-                              <Loader2 className="w-4 h-4 animate-spin text-slate-500" />
-                            ) : (
-                              <Check className="w-4 h-4" />
-                            )}
-                          </button>
-                        </td>
-                      );
-                    })}
-
-                    <td className="px-3 py-3 text-center font-semibold text-emerald-600">
-                      {paidCount}
-                    </td>
-
-                    <td className="px-3 py-3 text-center font-semibold text-red-600">
-                      {unpaidCount}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+            <button
+              type="button"
+              onClick={downloadPDF}
+              className="flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900"
+            >
+              <Printer className="w-4 h-4" />
+              Download PDF
+            </button>
+          </div>
         </div>
 
-        {students.length === 0 && (
-          <div className="p-8 text-center text-slate-500">
-            Belum ada data siswa.
+        {editingMonths && (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 no-print">
+            <p className="text-sm font-medium text-blue-800 mb-3">
+              Edit nama bulan untuk periode pembayaran.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {editingValues.map(
+                (value, index) => (
+                  <div key={index}>
+                    <label className="mb-1 block text-xs text-blue-700">
+                      Bulan {index + 1}
+                    </label>
+
+                    <input
+                      type="text"
+                      value={value}
+                      onChange={(event) => {
+                        const updated = [
+                          ...editingValues,
+                        ];
+
+                        updated[index] =
+                          event.target.value;
+
+                        setEditingValues(updated);
+                      }}
+                      className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+                    />
+                  </div>
+                )
+              )}
+            </div>
           </div>
         )}
-      </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <h2 className="font-semibold text-slate-800 mb-4">
-          Rekap Pembayaran Per Bulan
-        </h2>
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {monthlyRecap.map((month) => (
-            <div
-              key={month.key}
-              className="rounded-lg bg-slate-50 p-3 text-center"
-            >
-              <p className="font-medium text-slate-700">
-                {month.label}
-              </p>
-              <p className="text-xl font-bold text-emerald-600 mt-1">
-                {month.paid}
-              </p>
-              <p className="text-xs text-slate-500">
-                dari {students.length} siswa
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <h2 className="font-semibold text-slate-800 mb-4">
-          Siswa yang Masih Menunggak
-        </h2>
-
-        <div className="space-y-2">
-          {students
-            .filter(
-              (student) =>
-                getStudentPaidCount(student.id) <
-                MONTHS.length
-            )
-            .map((student) => {
-              const unpaid =
-                MONTHS.length -
-                getStudentPaidCount(student.id);
-
-              return (
-                <div
-                  key={student.id}
-                  className="flex items-center justify-between border-b border-slate-100 py-2"
-                >
-                  <span className="text-slate-700">
-                    {student.name}
-                  </span>
-
-                  <span className="text-sm font-semibold text-red-600">
-                    {unpaid} bulan
-                  </span>
-                </div>
-              );
-            })}
-
-          {students.every(
-            (student) =>
-              getStudentPaidCount(student.id) ===
-              MONTHS.length
-          ) && (
-            <p className="text-sm text-emerald-600">
-              Semua siswa sudah lunas Semester 1.
+        {/* SUMMARY */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">
+              Jumlah Siswa
             </p>
+
+            <p className="mt-1 text-2xl font-bold text-slate-800">
+              {students.length}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">
+              Sudah Bayar
+            </p>
+
+            <p className="mt-1 text-2xl font-bold text-emerald-600">
+              {totalPaid}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">
+              Belum Bayar
+            </p>
+
+            <p className="mt-1 text-2xl font-bold text-red-600">
+              {totalUnpaid}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-sm text-slate-500">
+              Total Tagihan
+            </p>
+
+            <p className="mt-1 text-2xl font-bold text-slate-800">
+              {totalPossible}
+            </p>
+
+            <p className="text-xs text-slate-400">
+              bulan pembayaran
+            </p>
+          </div>
+        </div>
+
+        {/* TABLE */}
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="border-b border-slate-200 px-4 py-4">
+            <h2 className="font-semibold text-slate-800">
+              Pembayaran Semester 1
+            </h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50">
+                  <th className="px-3 py-3 text-left">
+                    No
+                  </th>
+
+                  <th className="min-w-[180px] px-3 py-3 text-left">
+                    Nama Siswa
+                  </th>
+
+                  {months.map((month) => (
+                    <th
+                      key={month.key}
+                      className="px-3 py-3 text-center"
+                    >
+                      {month.label}
+                    </th>
+                  ))}
+
+                  <th className="min-w-[80px] px-3 py-3 text-center">
+                    Terbayar
+                  </th>
+
+                  <th className="min-w-[80px] px-3 py-3 text-center">
+                    Tunggakan
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {students.map(
+                  (student, index) => {
+                    const paidCount =
+                      getStudentPaidCount(
+                        student.id
+                      );
+
+                    const unpaidCount =
+                      months.length -
+                      paidCount;
+
+                    return (
+                      <tr
+                        key={student.id}
+                        className="border-b border-slate-100"
+                      >
+                        <td className="px-3 py-3">
+                          {index + 1}
+                        </td>
+
+                        <td className="px-3 py-3 font-medium text-slate-700">
+                          {student.name}
+                        </td>
+
+                        {months.map(
+                          (month) => {
+                            const paid =
+                              getPaid(
+                                student.id,
+                                month.key
+                              );
+
+                            const savingKey = `${student.id}-${month.key}`;
+
+                            return (
+                              <td
+                                key={month.key}
+                                className="px-3 py-3 text-center"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    togglePayment(
+                                      student.id,
+                                      month.key
+                                    )
+                                  }
+                                  disabled={
+                                    saving ===
+                                    savingKey
+                                  }
+                                  className={`mx-auto flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+                                    paid
+                                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                                      : 'border-slate-300 bg-white text-transparent hover:border-emerald-400'
+                                  }`}
+                                >
+                                  {saving ===
+                                  savingKey ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+                                  ) : (
+                                    <Check className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </td>
+                            );
+                          }
+                        )}
+
+                        <td className="px-3 py-3 text-center font-semibold text-emerald-600">
+                          {paidCount}
+                        </td>
+
+                        <td className="px-3 py-3 text-center font-semibold text-red-600">
+                          {unpaidCount}
+                        </td>
+                      </tr>
+                    );
+                  }
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {students.length === 0 && (
+            <div className="p-8 text-center text-slate-500">
+              Belum ada data siswa.
+            </div>
           )}
         </div>
+
+        {/* MONTHLY RECAP */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-4 font-semibold text-slate-800">
+            Rekap Pembayaran Per Bulan
+          </h2>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {monthlyRecap.map((month) => (
+              <div
+                key={month.key}
+                className="rounded-lg bg-slate-50 p-3 text-center"
+              >
+                <p className="font-medium text-slate-700">
+                  {month.label}
+                </p>
+
+                <p className="mt-1 text-xl font-bold text-emerald-600">
+                  {month.paid}
+                </p>
+
+                <p className="text-xs text-slate-500">
+                  dari {students.length} siswa
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ARREARS */}
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-4 font-semibold text-slate-800">
+            Siswa yang Masih Menunggak
+          </h2>
+
+          <div className="space-y-2">
+            {students
+              .filter(
+                (student) =>
+                  getStudentPaidCount(
+                    student.id
+                  ) < months.length
+              )
+              .map((student) => {
+                const unpaid =
+                  months.length -
+                  getStudentPaidCount(
+                    student.id
+                  );
+
+                return (
+                  <div
+                    key={student.id}
+                    className="flex items-center justify-between border-b border-slate-100 py-2"
+                  >
+                    <span className="text-slate-700">
+                      {student.name}
+                    </span>
+
+                    <span className="text-sm font-semibold text-red-600">
+                      {unpaid} bulan
+                    </span>
+                  </div>
+                );
+              })}
+
+            {students.length > 0 &&
+              students.every(
+                (student) =>
+                  getStudentPaidCount(
+                    student.id
+                  ) === months.length
+              ) && (
+                <p className="text-sm text-emerald-600">
+                  Semua siswa sudah lunas.
+                </p>
+              )}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
