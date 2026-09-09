@@ -1,8 +1,7 @@
 import { Wallet, LayoutDashboard, Users, TrendingUp, TrendingDown, FileText, Settings, LogOut, X, LogIn } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
-export type Page = 'dashboard' | 'students' | 'income' | 'expense' | 'report' | 'settings';
-
+export type Page = 'dashboard' | 'students' | 'income' | 'expense' | 'report' | 'paymentReport' | 'settings';
 const menu: { id: Page; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'students', label: 'Data Siswa', icon: Users },
