@@ -1,12 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  Check,
-  Loader2,
-  Pencil,
-  Printer,
-  Save,
-  X,
-} from 'lucide-react';
+import { Loader2, Pencil, Printer, Save, X } from 'lucide-react';
 import { supabase, type Student } from '@/lib/supabase';
 
 const DEFAULT_MONTHS = [
@@ -51,9 +44,7 @@ export default function PaymentReport() {
   );
 
   useEffect(() => {
-    const savedMonths = localStorage.getItem(
-      MONTH_STORAGE_KEY
-    );
+    const savedMonths = localStorage.getItem(MONTH_STORAGE_KEY);
 
     if (savedMonths) {
       try {
@@ -69,7 +60,7 @@ export default function PaymentReport() {
           );
         }
       } catch {
-        // Gunakan nama bulan bawaan
+        // Gunakan bulan default
       }
     }
   }, []);
@@ -176,10 +167,7 @@ export default function PaymentReport() {
       if (existing) {
         return current.map((payment) =>
           payment.id === existing.id
-            ? {
-                ...payment,
-                paid: newPaid,
-              }
+            ? { ...payment, paid: newPaid }
             : payment
         );
       }
@@ -198,13 +186,10 @@ export default function PaymentReport() {
     setSaving(null);
   };
 
-  const getStudentPaidCount = (
-    studentId: string
-  ) => {
-    return months.filter((month) =>
+  const getStudentPaidCount = (studentId: string) =>
+    months.filter((month) =>
       getPaid(studentId, month.key)
     ).length;
-  };
 
   const totalPaid = students.reduce(
     (total, student) =>
@@ -240,16 +225,12 @@ export default function PaymentReport() {
   };
 
   const saveMonths = () => {
-    const cleaned = editingValues.map(
-      (value, index) =>
-        value.trim() ||
-        DEFAULT_MONTHS[index].label
-    );
-
     const updatedMonths = months.map(
       (month, index) => ({
         ...month,
-        label: cleaned[index],
+        label:
+          editingValues[index].trim() ||
+          DEFAULT_MONTHS[index].label,
       })
     );
 
@@ -270,7 +251,7 @@ export default function PaymentReport() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-7 h-7 animate-spin text-primary-600" />
+        <Loader2 className="h-7 w-7 animate-spin text-primary-600" />
       </div>
     );
   }
@@ -296,65 +277,72 @@ export default function PaymentReport() {
               width: 100% !important;
             }
 
+            .payment-check {
+              display: inline-flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              width: 26px !important;
+              height: 26px !important;
+              border: 1px solid #94a3b8 !important;
+              border-radius: 5px !important;
+              font-family: Arial, sans-serif !important;
+              font-size: 18px !important;
+              font-weight: bold !important;
+            }
+
+            .payment-check.paid {
+              background: #10b981 !important;
+              color: white !important;
+              border-color: #10b981 !important;
+              print-color-adjust: exact !important;
+              -webkit-print-color-adjust: exact !important;
+            }
+
+            .payment-check.unpaid {
+              background: white !important;
+              color: transparent !important;
+            }
+
             table {
+              width: 100% !important;
               font-size: 10px !important;
+            }
+
+            th,
+            td {
+              padding: 6px !important;
             }
 
             @page {
               size: landscape;
               margin: 10mm;
             }
-
-            .payment-check {
-              display: flex !important;
-              align-items: center !important;
-              justify-content: center !important;
-              width: 28px !important;
-              height: 28px !important;
-              margin: auto !important;
-              border: 1px solid #94a3b8 !important;
-              border-radius: 6px !important;
-              background: white !important;
-              color: transparent !important;
-            }
-
-            .payment-check.paid {
-              background: #10b981 !important;
-              border-color: #10b981 !important;
-              color: white !important;
-              print-color-adjust: exact;
-              -webkit-print-color-adjust: exact;
-            }
-
-            .payment-check svg {
-              display: block !important;
-            }
           }
         `}
       </style>
 
-      <div className="space-y-6 print-area">
+      <div className="print-area space-y-6">
 
-        {/* HEADER */}
+        {/* JUDUL */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">
               Laporan Pembayaran
             </h1>
 
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="mt-1 text-sm text-slate-500">
               Rekap pembayaran iuran siswa Semester 1
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 no-print">
+          <div className="no-print flex flex-wrap gap-2">
             {!editingMonths ? (
               <button
                 type="button"
                 onClick={startEditingMonths}
-                className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
-                <Pencil className="w-4 h-4" />
+                <Pencil className="h-4 w-4" />
                 Edit Bulan
               </button>
             ) : (
@@ -362,18 +350,18 @@ export default function PaymentReport() {
                 <button
                   type="button"
                   onClick={saveMonths}
-                  className="flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
                 >
-                  <Save className="w-4 h-4" />
+                  <Save className="h-4 w-4" />
                   Simpan
                 </button>
 
                 <button
                   type="button"
                   onClick={cancelEditingMonths}
-                  className="flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700"
+                  className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="h-4 w-4" />
                   Batal
                 </button>
               </>
@@ -382,9 +370,9 @@ export default function PaymentReport() {
             <button
               type="button"
               onClick={downloadPDF}
-              className="flex items-center justify-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900"
+              className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900"
             >
-              <Printer className="w-4 h-4" />
+              <Printer className="h-4 w-4" />
               Download PDF
             </button>
           </div>
@@ -392,7 +380,7 @@ export default function PaymentReport() {
 
         {/* EDIT BULAN */}
         {editingMonths && (
-          <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 no-print">
+          <div className="no-print rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="mb-3 text-sm font-medium text-blue-800">
               Edit nama bulan untuk periode pembayaran.
             </p>
@@ -434,13 +422,12 @@ export default function PaymentReport() {
           </div>
         )}
 
-        {/* SUMMARY */}
+        {/* RINGKASAN */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <div className="rounded-xl border border-slate-200 bg-white p-4">
             <p className="text-sm text-slate-500">
               Jumlah Siswa
             </p>
-
             <p className="mt-1 text-2xl font-bold text-slate-800">
               {students.length}
             </p>
@@ -450,7 +437,6 @@ export default function PaymentReport() {
             <p className="text-sm text-slate-500">
               Sudah Bayar
             </p>
-
             <p className="mt-1 text-2xl font-bold text-emerald-600">
               {totalPaid}
             </p>
@@ -460,7 +446,6 @@ export default function PaymentReport() {
             <p className="text-sm text-slate-500">
               Belum Bayar
             </p>
-
             <p className="mt-1 text-2xl font-bold text-red-600">
               {totalUnpaid}
             </p>
@@ -470,18 +455,16 @@ export default function PaymentReport() {
             <p className="text-sm text-slate-500">
               Total Tagihan
             </p>
-
             <p className="mt-1 text-2xl font-bold text-slate-800">
               {totalPossible}
             </p>
-
             <p className="text-xs text-slate-400">
               bulan pembayaran
             </p>
           </div>
         </div>
 
-        {/* TABLE */}
+        {/* TABEL PEMBAYARAN */}
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
           <div className="border-b border-slate-200 px-4 py-4">
             <h2 className="font-semibold text-slate-800">
@@ -510,11 +493,11 @@ export default function PaymentReport() {
                     </th>
                   ))}
 
-                  <th className="min-w-[80px] px-3 py-3 text-center">
+                  <th className="px-3 py-3 text-center">
                     Terbayar
                   </th>
 
-                  <th className="min-w-[80px] px-3 py-3 text-center">
+                  <th className="px-3 py-3 text-center">
                     Tunggakan
                   </th>
                 </tr>
@@ -553,7 +536,8 @@ export default function PaymentReport() {
                                 month.key
                               );
 
-                            const savingKey = `${student.id}-${month.key}`;
+                            const savingKey =
+                              `${student.id}-${month.key}`;
 
                             return (
                               <td
@@ -572,17 +556,23 @@ export default function PaymentReport() {
                                     saving ===
                                     savingKey
                                   }
-                                  className={`payment-check mx-auto flex h-8 w-8 items-center justify-center rounded-lg border transition ${
+                                  className={`payment-check ${
                                     paid
-                                      ? 'paid border-emerald-500 bg-emerald-500 text-white'
-                                      : 'border-slate-300 bg-white text-transparent hover:border-emerald-400'
-                                  }`}
+                                      ? 'paid'
+                                      : 'unpaid'
+                                  } flex h-8 w-8 items-center justify-center rounded-lg border mx-auto`}
                                 >
                                   {saving ===
                                   savingKey ? (
-                                    <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : paid ? (
+                                    <span aria-label="Sudah bayar">
+                                      ✓
+                                    </span>
                                   ) : (
-                                    <Check className="h-4 w-4" />
+                                    <span>
+                                      &nbsp;
+                                    </span>
                                   )}
                                 </button>
                               </td>
