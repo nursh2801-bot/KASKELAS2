@@ -77,5 +77,12 @@ export default function App() {
     <AuthProvider>
       <Shell />
     </AuthProvider>
+    7. Klik **Commit changes**
+8. Pilih **Commit directly to the `main` branch**
+9. Klik **Commit changes** lagi.
+
+Setelah selesai, GitHub akan membuat **commit baru**, sehingga Vercel seharusnya otomatis mengambil commit terbaru, bukan `7a42b25`.
+
+Kalau sudah selesai commit, **bilang aku “sudah”**. Kita cek langkah berikutnya.
   );
 }
